@@ -1,84 +1,83 @@
 from __future__ import unicode_literals
 
+import youtube_dl
 import os
 import platform
-import re
-import shutil
-import sys
 import tempfile
-
-import youtube_dl
+import sys
+import shutil
 from mutagen.easyid3 import EasyID3
-
 from youtube2mp3.options import options
 
 
-# noinspection PyBroadException,PyBroadException
-class Youtube2mp3(object):
-    FILES = []
+class Youtube2mp3:
 
     def __init__(self):
         tempdir = '/tmp' if platform.system() == 'Darwin' else tempfile.gettempdir()
         os.chdir(tempdir)
 
     def run(self):
-        if not options.directory:
-            print("a directory \"-d\" where to save the files must be set!")
-            sys.exit(1)
-        if not options.youtube_url:
-            print("the youtube url \"-y\" is missing!")
-            sys.exit(1)
-
         ydl_opts = {'format': 'bestaudio/best',
                     'postprocessors': [{
                         'key': 'FFmpegExtractAudio',
                         'preferredcodec': 'mp3',
                         'preferredquality': '192',
                     }],
-                    'progress_hooks': [self._download_hook], }
+                    'proxy': 'socks5://127.0.0.1:1086',
+                    # 'outtmpl': '%(title)s-%(id)s.%(ext)s',
+                    'outtmpl': '%(id)s.%(ext)s',
+                    # 'writethumbnail': 'true', // 专辑封面
+                    # 'writeinfojson': 'true', 歌曲信息
+                    # 'writesubtitles': 'true', // 字幕
+                    # 'writedescription': 'true' 详情
+                    }
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
-                ydl.download([options.youtube_url])
+                url = options.youtube_url
+                # url = "https://www.youtube.com/watch?v=yarMN6qFaKo"
+
+                results = ydl.extract_info(url=url)
+
+                if results['playlist']:
+                    for res in results['playlist']:
+                        self._set_id3(res)
+                else:
+                    self._set_id3(results)
+
+                pass
+
             except (youtube_dl.utils.DownloadError, youtube_dl.utils.ContentTooShortError,
                     youtube_dl.utils.ExtractorError) as e:
-                print(e.message)
+                # print(e.message)
                 sys.exit(1)
 
-        self._set_id3()
-
-    def _download_hook(self, d):
-        if d['status'] == 'finished':
-            self.FILES.append(d['filename'])
-            print('Done downloading, now converting ...')
-            print(d['filename'])
-
     @staticmethod
-    def _get_tagging_params(name):
-        regex = '(?=-)'
-        if len(re.findall(regex, name)) > 2:
-            name = re.sub('-', '', name, 1)
-        (artist, title, code) = name.split('-')
-        return artist, title, code
+    def _set_id3(res):
+        file = EasyID3(res['id'] + '.mp3')
 
-    def _set_id3(self):
-        if self.FILES:
-            for file in self.FILES:
-                try:
-                    base = os.path.basename(str(file))
-                    name = os.path.splitext(base)[0]
-                except Exception:  # noqa
-                    continue
-                try:
-                    (artist, title, code) = self._get_tagging_params(name)
-                    print("[tagging]: %s" % name + '.mp3')
-                    file = EasyID3(name + '.mp3')
-                    file['title'] = title
-                    file['artist'] = artist
-                    file.save()
-                except Exception:
-                    print('[info]: not able to tag file. naming problem')
-                    pass
-                shutil.move(name + '.mp3', os.path.join(options.directory, name + '.mp3'))
+        if res['artist']:
+            file['title'] = res['artist']
+        else:
+            file['artist'] = res['uploader']
+
+        if res['alt_title']:
+            title = res['alt_title']
+        else:
+            title = res['title']
+
+        file['title'] = title
+
+        if res['album']:
+            file['album'] = res['album']
+
+        file.save()
+        try:
+            if os.path.exists(os.path.join('/Users/twodogegg/Music/Music', title + '.mp3')):
+                print(title + "已经存在")
+            else:
+                shutil.move(res['id'] + '.mp3', os.path.join('/Users/twodogegg/Music/Music', title + '.mp3'))
+        except Exception:
+            print("文件格式异常")
 
 
 def main():
