@@ -7,7 +7,9 @@ import tempfile
 import sys
 import shutil
 from mutagen.easyid3 import EasyID3
-from youtube2mp3.options import options
+
+
+# from youtube2mp3.options import options
 
 
 class Youtube2mp3:
@@ -33,13 +35,12 @@ class Youtube2mp3:
                     }
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
-                url = options.youtube_url
+                url = 'https://www.youtube.com/playlist?list=PLECJpeeyOivVJFABa1XNHerLTLrgHCmAn'
                 # url = "https://www.youtube.com/watch?v=yarMN6qFaKo"
 
                 results = ydl.extract_info(url=url)
-
-                if results['playlist']:
-                    for res in results['playlist']:
+                if 'entries' in results.keys():
+                    for res in results['entries']:
                         self._set_id3(res)
                 else:
                     self._set_id3(results)
