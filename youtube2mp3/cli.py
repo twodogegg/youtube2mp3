@@ -28,6 +28,7 @@ class Youtube2mp3:
                     'proxy': 'socks5://127.0.0.1:1086',
                     # 'outtmpl': '%(title)s-%(id)s.%(ext)s',
                     'outtmpl': '%(id)s.%(ext)s',
+                    'nocheckcertificate': True
                     # 'writethumbnail': 'true', // 专辑封面
                     # 'writeinfojson': 'true', 歌曲信息
                     # 'writesubtitles': 'true', // 字幕
