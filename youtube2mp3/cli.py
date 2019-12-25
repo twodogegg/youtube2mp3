@@ -38,7 +38,7 @@ class Youtube2mp3:
             try:
                 # url = 'https://www.youtube.com/playlist?list=PLECJpeeyOivVJFABa1XNHerLTLrgHCmAn'
                 # url = "https://www.youtube.com/watch?v=yarMN6qFaKo"
-                url = options.url
+                url = options.youtube_url
 
                 results = ydl.extract_info(url=url)
                 if 'entries' in results.keys():
